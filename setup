@@ -1,0 +1,7 @@
+#! /bin/env bash
+echo Funciona
+
+touch /tmp/mock
+
+exit 0
+
