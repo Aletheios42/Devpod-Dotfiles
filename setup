@@ -1,7 +1,9 @@
 #!/bin/bash
 
-touch /tmp/hola
+set -euo pipefail
 
-echo "hola"
+if ! command -v chezmoi >/dev/null; then
+	    sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply git@github.com:Aletheios42/Devpod-Dotfiles.git
+fi
 
-echo "set -o vi" >> ~/.bashrc
+exit 0
