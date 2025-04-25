@@ -1,0 +1,149 @@
+# ~/.zshrc
+# Si no se está ejecutando interactivamente, no hacer nada
+[[ $- != *i* ]] && return
+
+#################################################
+# CONFIGURACIÓN BÁSICA DE ZSH
+#################################################
+
+# Habilitar modo vi en zsh
+bindkey -v
+export KEYTIMEOUT=1 # hacer el cambio entre modos más rápido
+
+# Deshabilitar beep
+unsetopt BEEP
+setopt NO_BEEP
+
+# Opciones de ZSH
+setopt AUTO_MENU
+setopt COMPLETE_IN_WORD
+setopt ALWAYS_TO_END
+
+# Definir atajos de teclado
+bindkey -s '^P' 'clear\n'
+
+#################################################
+# VARIABLES DE ENTORNO
+#################################################
+
+# Editor predeterminado
+export EDITOR="nvim"
+
+# URLs para repositorios
+export GITHUB="https://github.com/Aletheios42"
+export DOCKERHUB="https://hub.docker.com/repositories/alejandropintosdev"
+
+#################################################
+# ALIAS
+#################################################
+
+# Comandos básicos mejorados
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+alias clip='xclip -selection clipboard'
+
+# Edición rápida y recarga del zshrc
+alias zshrc='nvim ~/.zshrc'
+alias reload='source ~/.zshrc'
+
+# Atajos de productividad
+alias n='nvim'
+
+#################################################
+# FUNCIONES
+#################################################
+
+# Configuración del prompt
+precmd() { set_prompt_zsh }
+
+# Función para establecer el prompt con información de git
+function set_prompt_zsh {
+  local git_branch=""
+  local git_status=""
+  local git_info=""
+  
+  if git rev-parse --is-inside-work-tree &>/dev/null; then
+    git_branch=$(git rev-parse --abbrev-ref HEAD)
+    
+    if [ -n "$(git status --porcelain)" ]; then
+      git_status="%F{red}*%f"
+    fi
+    
+    if git rev-parse --abbrev-ref @{upstream} &>/dev/null; then
+      local ahead=$(git rev-list --count "@{upstream}..HEAD" 2>/dev/null)
+      local behind=$(git rev-list --count "HEAD..@{upstream}" 2>/dev/null)
+      
+      if [ "$ahead" -gt 0 ]; then
+        git_status="${git_status}%F{cyan}↑${ahead}%f"
+      fi
+      
+      if [ "$behind" -gt 0 ]; then
+        git_status="${git_status}%F{blue}↓${behind}%f"
+      fi
+    fi
+    
+    git_info="%F{yellow}${git_branch}%f${git_status} "
+  fi
+  
+  PROMPT="%F{cyan}%n%f %F{green}%~%f ${git_info}%F{magenta}>%f "
+}
+
+# Buscar archivos (excluyendo ocultos) con fzf
+zz() {
+  local selected_file
+  selected_file=$(find . -type f -not -path "*/\.*" | fzf)
+  if [[ -n "$selected_file" ]]; then
+    cd "$(dirname "$selected_file")"
+  fi
+}
+
+# Buscar en el historial de comandos con fzf (compatible con bash y zsh)
+fhist() {
+  local cmd
+  if [[ -n "$ZSH_VERSION" ]]; then
+    # Versión para Zsh
+    cmd=$(fc -l 1 | fzf --tac | sed 's/ *[0-9]*\** *//')
+  else
+    # Versión para Bash
+    cmd=$(history | fzf --tac | sed 's/ *[0-9]* *//')
+  fi
+  
+  if [[ -n "$cmd" ]]; then
+    echo "$cmd"
+    eval "$cmd"
+  fi
+}
+
+#################################################
+# AUTOCOMPLETADO
+#################################################
+
+# Autocompletado básico
+autoload -Uz compinit
+compinit
+
+# Autocompletado con cache
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path "$HOME/.zcompcache"
+
+# Formato y estilo del autocompletado
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' verbose yes
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+
+# Grupos en autocompletados
+zstyle ':completion:*:*:*:*:*' menu select
+zstyle ':completion:*:matches' group 'yes'
+zstyle ':completion:*:options' description 'yes'
+zstyle ':completion:*:options' auto-description '%d'
+zstyle ':completion:*:corrections' format ' %F{green}-- %d (errors: %e) --%f'
+zstyle ':completion:*:descriptions' format ' %F{yellow}-- %d --%f'
+zstyle ':completion:*:messages' format ' %F{purple} -- %d --%f'
+zstyle ':completion:*:warnings' format ' %F{red}-- no matches found --%f'
+zstyle ':completion:*:default' list-prompt '%S%M matches%s'
+zstyle ':completion:*' format ' %F{yellow}-- %d --%f'
+zstyle ':completion:*' group-name ''
+
+# Completar comandos, archivos, etc.
+zstyle ':completion:*' completer _expand _complete _correct _approximate
